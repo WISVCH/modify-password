@@ -40,8 +40,6 @@ func main() {
 	// Set up validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterStructValidation(modifyPasswordFormValidator, ModifyPasswordForm{})
-	}
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("validusername", usernameValidator)
 	}
 
@@ -76,10 +74,15 @@ func main() {
 				})
 			}
 		} else {
+			var errors []string
+			// Support password change requests from Userman2 that only set Username and CurrentPassword
+			if form.NewPassword1 != "" && form.NewPassword2 != "" {
+				errors = formatError(err)
+			}
 			c.HTML(http.StatusOK, "form.html", gin.H{
 				"username":        form.Username,
 				"currentPassword": form.CurrentPassword,
-				"errors":          formatError(err),
+				"errors":          errors,
 			})
 		}
 	})
