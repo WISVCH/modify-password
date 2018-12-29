@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/mattevans/pwned-passwords"
 	"github.com/trustelem/zxcvbn"
 	"gopkg.in/go-playground/validator.v8"
 	"gopkg.in/ldap.v3"
@@ -28,6 +29,7 @@ const serverName = "ank.chnet"
 const serverAddress = "ank.chnet:636"
 
 var roots = x509.NewCertPool()
+var hibpClient = hibp.NewClient()
 
 func main() {
 	// Load LDAP CA root
@@ -119,6 +121,15 @@ func modifyPasswordFormValidator(v *validator.Validate, sl *validator.StructLeve
 	s := zxcvbn.PasswordStrength(form.NewPassword1, []string{form.Username, form.CurrentPassword})
 	if s.Score < 3 {
 		sl.ReportError(reflect.ValueOf(form.NewPassword1), "NewPassword1", "", "weak")
+		return
+	}
+	pwned, err := hibpClient.Pwned.Compromised(form.NewPassword1)
+	if err != nil {
+		log.Printf("could not check hibp: %v", err)
+		return
+	}
+	if pwned {
+		sl.ReportError(reflect.ValueOf(form.NewPassword1), "NewPassword1", "", "pwned")
 	}
 }
 
@@ -138,6 +149,8 @@ func formatError(err error) []string {
 				f = append(f, "New password is required")
 			case "weak":
 				f = append(f, "New password is too weak")
+			case "pwned":
+				f = append(f, "New password is compromised according to 'Have I Been Pwned'")
 			}
 		case "NewPassword2":
 			f = append(f, "New passwords do not match")
