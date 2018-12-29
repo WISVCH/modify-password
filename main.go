@@ -46,7 +46,8 @@ func main() {
 	}
 
 	// Set up router
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 	r.LoadHTMLFiles("static/form.html")
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{})
