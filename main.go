@@ -4,17 +4,19 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/mattevans/pwned-passwords"
-	"github.com/trustelem/zxcvbn"
-	"gopkg.in/go-playground/validator.v8"
-	"gopkg.in/ldap.v3"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"reflect"
 	"regexp"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/mattevans/pwned-passwords"
+	"github.com/trustelem/zxcvbn"
+	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
+	"gopkg.in/go-playground/validator.v8"
+	"gopkg.in/ldap.v3"
 )
 
 type ModifyPasswordForm struct {
@@ -47,10 +49,11 @@ func main() {
 
 	// Set up router
 	r := gin.New()
+	r.Use(gintrace.Middleware("modify-password"))
 	r.Use(gin.Recovery())
 	r.LoadHTMLFiles("static/form.html")
 	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{})
+		c.String(http.StatusOK, "ok")
 	})
 
 	// Set up main routes
