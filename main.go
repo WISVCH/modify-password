@@ -26,7 +26,7 @@ type ModifyPasswordForm struct {
 	NewPassword2    string `form:"newPassword2" binding:"required,eqfield=NewPassword1"`
 }
 
-const UsernameRegex = "^[0-9a-z]+$"
+const UsernameRegex = "^[a-zA-Z][a-zA-Z\\d\\-_]+$"
 const serverName = "ank.chnet"
 const serverAddress = "ank.chnet:636"
 
