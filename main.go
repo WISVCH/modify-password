@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/go-ldap/ldap/v3"
+	hibp "github.com/mattevans/pwned-passwords"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,11 +14,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/mattevans/pwned-passwords"
 	"github.com/trustelem/zxcvbn"
 	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v8"
-	"gopkg.in/ldap.v3"
 )
 
 type ModifyPasswordForm struct {
@@ -27,8 +27,7 @@ type ModifyPasswordForm struct {
 }
 
 const UsernameRegex = "^[a-zA-Z][a-zA-Z\\d\\-_]+$"
-const serverName = "ank.chnet"
-const serverAddress = "ank.chnet:636"
+const serverAddress = "ldaps://ank.chnet"
 
 var roots = x509.NewCertPool()
 var hibpClient = hibp.NewClient()
@@ -94,22 +93,23 @@ func main() {
 	})
 
 	// Start server
-	r.Run()
+	log.Fatal(r.Run())
 }
 
 func modifyPassword(form *ModifyPasswordForm) error {
-	l, err := ldap.DialTLS("tcp", serverAddress, &tls.Config{ServerName: serverName, RootCAs: roots, InsecureSkipVerify: true})
+	opts := ldap.DialWithTLSConfig(&tls.Config{RootCAs: roots})
+	conn, err := ldap.DialURL(serverAddress, opts)
 	if err != nil {
-		return err
+		return fmt.Errorf("could dial LDAP server: %w", err)
 	}
-	defer l.Close()
-	dn := fmt.Sprintf("uid=%s,ou=People,dc=ank,dc=chnet", form.Username)
-	err = l.Bind(dn, form.CurrentPassword)
+	defer conn.Close()
+	dn := fmt.Sprintf("uid=%s,ou=People,dc=ank,dc=chnet", ldap.EscapeFilter(form.Username))
+	err = conn.Bind(dn, form.CurrentPassword)
 	if err != nil {
 		return err
 	}
 	passwordModifyRequest := ldap.NewPasswordModifyRequest(dn, form.CurrentPassword, form.NewPassword1)
-	_, err = l.PasswordModify(passwordModifyRequest)
+	_, err = conn.PasswordModify(passwordModifyRequest)
 	return err
 }
 
