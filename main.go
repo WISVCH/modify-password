@@ -127,7 +127,7 @@ func modifyPasswordFormValidator(v *validator.Validate, sl *validator.StructLeve
 		sl.ReportError(reflect.ValueOf(form.NewPassword1), "NewPassword1", "", "weak")
 		return
 	}
-	pwned, err := hibpClient.Pwned.Compromised(form.NewPassword1)
+	pwned, err := hibpClient.Compromised(form.NewPassword1)
 	if err != nil {
 		log.Printf("could not check hibp: %v", err)
 		return
