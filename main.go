@@ -9,14 +9,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"reflect"
 	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/trustelem/zxcvbn"
 	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
-	"gopkg.in/go-playground/validator.v8"
 )
 
 type ModifyPasswordForm struct {
@@ -43,7 +42,12 @@ func main() {
 	// Set up validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterStructValidation(modifyPasswordFormValidator, ModifyPasswordForm{})
-		v.RegisterValidation("validusername", usernameValidator)
+		err := v.RegisterValidation("validusername", usernameValidator)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		panic("validator engine not set up")
 	}
 
 	// Set up router
@@ -113,18 +117,17 @@ func modifyPassword(form *ModifyPasswordForm) error {
 	return err
 }
 
-func usernameValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value,
-	field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	username := field.String()
+func usernameValidator(fl validator.FieldLevel) bool {
+	username := fl.Field().String()
 	b, _ := regexp.MatchString(UsernameRegex, username)
 	return b
 }
 
-func modifyPasswordFormValidator(v *validator.Validate, sl *validator.StructLevel) {
-	form := sl.CurrentStruct.Interface().(ModifyPasswordForm)
+func modifyPasswordFormValidator(sl validator.StructLevel) {
+	form := sl.Current().Interface().(ModifyPasswordForm)
 	s := zxcvbn.PasswordStrength(form.NewPassword1, []string{form.Username, form.CurrentPassword})
 	if s.Score < 3 {
-		sl.ReportError(reflect.ValueOf(form.NewPassword1), "NewPassword1", "", "weak")
+		sl.ReportError(form.NewPassword1, "NewPassword1", "", "weak", "")
 		return
 	}
 	pwned, err := hibpClient.Compromised(form.NewPassword1)
@@ -133,7 +136,7 @@ func modifyPasswordFormValidator(v *validator.Validate, sl *validator.StructLeve
 		return
 	}
 	if pwned {
-		sl.ReportError(reflect.ValueOf(form.NewPassword1), "NewPassword1", "", "pwned")
+		sl.ReportError(form.NewPassword1, "NewPassword1", "", "pwned", "")
 	}
 }
 
@@ -142,13 +145,13 @@ func formatError(err error) []string {
 	f := make([]string, 0)
 	for _, e := range v {
 		//log.Printf("e: %v", e)
-		switch e.Field {
+		switch e.Field() {
 		case "Username":
 			f = append(f, "Username is invalid")
 		case "CurrentPassword":
 			f = append(f, "Current password is invalid")
 		case "NewPassword1":
-			switch e.Tag {
+			switch e.Tag() {
 			case "required":
 				f = append(f, "New password is required")
 			case "weak":
