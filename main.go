@@ -15,7 +15,6 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/trustelem/zxcvbn"
-	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 )
 
 type ModifyPasswordForm struct {
@@ -52,7 +51,6 @@ func main() {
 
 	// Set up router
 	r := gin.New()
-	r.Use(gintrace.Middleware("modify-password"))
 	r.Use(gin.Recovery())
 	r.LoadHTMLFiles("static/form.html")
 	r.GET("/healthz", func(c *gin.Context) {
