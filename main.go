@@ -67,15 +67,19 @@ func main() {
 		var form ModifyPasswordForm
 		if err := c.ShouldBindWith(&form, binding.FormPost); err == nil {
 			err = modifyPassword(&form)
+			// Esacpe the username for logging
+			escapedUsername := strings.Replace(form.Username, "\n", "", -1)
+			escapedUsername = strings.Replace(escapedUsername, "\r", "", -1)
+
 			if err != nil {
-				log.Printf("password modify failure for %s: %v", form.Username, err)
+				log.Printf("password modify failure for %s: %v", escapedUsername, err)
 				c.HTML(http.StatusOK, "form.html", gin.H{
 					"username":        form.Username,
 					"currentPassword": form.CurrentPassword,
 					"errors":          []string{"Password could not be modified, is the current password correct?"},
 				})
 			} else {
-				log.Printf("password modify success for %s", form.Username)
+				log.Printf("password modify success for %s", escapedUsername)
 				c.HTML(http.StatusOK, "form.html", gin.H{
 					"success": true,
 				})
