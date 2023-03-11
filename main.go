@@ -68,8 +68,7 @@ func main() {
 		if err := c.ShouldBindWith(&form, binding.FormPost); err == nil {
 			err = modifyPassword(&form)
 			// Esacpe the username for logging
-			escapedUsername := strings.Replace(form.Username, "\n", "", -1)
-			escapedUsername = strings.Replace(escapedUsername, "\r", "", -1)
+			escapedUsername := fmt.Sprintf("%q", form.Username)
 
 			if err != nil {
 				log.Printf("password modify failure for %s: %v", escapedUsername, err)
