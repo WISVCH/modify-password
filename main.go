@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 
 	ldap "github.com/go-ldap/ldap/v3"
@@ -33,7 +33,7 @@ var hibpClient = hibp.NewClient()
 
 func main() {
 	// Load LDAP CA root
-	cert, err := ioutil.ReadFile("static/wisvch.crt")
+	cert, err := os.ReadFile("static/wisvch.crt")
 	if err != nil {
 		panic(err)
 	}
