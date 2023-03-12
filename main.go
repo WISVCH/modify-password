@@ -4,18 +4,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
-	hibp "github.com/mattevans/pwned-passwords"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
 
+	ldap "github.com/go-ldap/ldap/v3"
+	hibp "github.com/mattevans/pwned-passwords"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/trustelem/zxcvbn"
-	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 )
 
 type ModifyPasswordForm struct {
@@ -52,7 +52,6 @@ func main() {
 
 	// Set up router
 	r := gin.New()
-	r.Use(gintrace.Middleware("modify-password"))
 	r.Use(gin.Recovery())
 	r.LoadHTMLFiles("static/form.html")
 	r.GET("/healthz", func(c *gin.Context) {
@@ -69,15 +68,18 @@ func main() {
 		var form ModifyPasswordForm
 		if err := c.ShouldBindWith(&form, binding.FormPost); err == nil {
 			err = modifyPassword(&form)
+			// Esacpe the username for logging
+			escapedUsername := fmt.Sprintf("%q", form.Username)
+
 			if err != nil {
-				log.Printf("password modify failure for %s: %v", form.Username, err)
+				log.Printf("password modify failure for %s: %v", escapedUsername, err)
 				c.HTML(http.StatusOK, "form.html", gin.H{
 					"username":        form.Username,
 					"currentPassword": form.CurrentPassword,
 					"errors":          []string{"Password could not be modified, is the current password correct?"},
 				})
 			} else {
-				log.Printf("password modify success for %s", form.Username)
+				log.Printf("password modify success for %s", escapedUsername)
 				c.HTML(http.StatusOK, "form.html", gin.H{
 					"success": true,
 				})
