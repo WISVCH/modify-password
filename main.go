@@ -4,16 +4,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
-	hibp "github.com/mattevans/pwned-passwords"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
 
+	ldap "github.com/go-ldap/ldap/v3"
+	hibp "github.com/mattevans/pwned-passwords"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/trustelem/zxcvbn"
 )
 
